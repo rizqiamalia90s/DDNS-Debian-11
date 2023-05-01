@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Konfigurasi DDNS Debian 11</title>
+	<link rel="stylesheet" href="ddns.css">
+</head>
+<body>
+	<header>
+		<h1>Konfigurasi DDNS Debian 11</h1>
+	</header>
+	<main>
+		<div class="container">
+            <section>
+                <h2>Introduction</h2>
+                <p>Halo semua! Saya Rizqi Amalia, pada artikel kali ini akan membahas cara konfigurasi Dynamic DNS pada Debian 11. Tutorial ini bertujuan agar para pembaca bisa melakukan konfigurasi dan mengetahui fungsi dari setiap komponen yang ada. DDNS sendiri adalah materi Linux yang termasuk tingkat menengah keatas, dimana harus memiliki pemahaman tentang jaringan, DNS dasar, dan pengalamatan IP. Namun dengan latihan giat, pemula sekalipun bisa melakukan konfigurasi DDNS di Debian 11 ini. So, what you waiting for?</p>
+                <h2>Theory</h2>
+                <p>Dynamic Domain Name System (DDNS) adalah sebuah teknologi yang memungkinkan pengguna untuk menghubungkan alamat IP yang berubah-ubah dari suatu jaringan ke nama domain yang tetap. Dalam DDNS, sebuah perangkat lunak atau layanan secara otomatis memperbarui informasi DNS untuk mengarahkan nama domain ke alamat IP yang baru.</p> 
+                <p>Analoginya, jika ada klien yang mendapat IP otomatis dari DHCP Server, maka akan dibuatkan domain secara otomatis oleh DDNS. Dimana nantinya pengguna dapat menggunakan nama domain yang mudah diingat dan tetap. Tanpa perlu tau alamat IP yang berubah-ubah.</p>
+                <p>DDNS biasanya berguna dipakai dalam jaringan rumah atau kantor kecil yang menggunakan koneksi internet dengan IP dinamis. DDNS juga digunakan untuk memudahkan remote access dan pengaturan sistem keamanan jaringan.</p>
+                <h2>Topology</h2>
+                <P>Berikut topologi yang akan saya gunakan pada tutorial kali ini :</P>
+                <img src="topologi.png" >
+                <h2>Preparation</h2>
+                <ol>
+                    <br>
+                    <li>Siapkan 2 VM (CLI dan GUI), disini saya menggunakan VMWare sebagai virtualization manager</li>
+                    <br>
+                    <img src="2 vm.png">
+                    <br><br>
+                    <li>Atur adapter setiap vm, menjadi adapter LAN Segment disini saya beri nama 'internal1'. Jika menggunakan VirtualBox bisa menggunakan adapter internal</li>
+                    <br>
+                    <img src="adapter.png">
+                    <br><br>
+                    <li>Login menggunakan user root</li>
+                    <br>
+                    <img src="login.png">
+                    <br><br>
+                    <li>Atur IP Address terlebih dahulu, disini saya menggunakan IP 172.1.1.1/24. <br><br>Command :<pre><code>nano /etc/network/interfaces<br>Ctrl+X, Y, Enter</code></pre></li>
+                    <br>
+                    <img src="ip address server.png"> 
+                    <br><br>
+                    <li>Restart untuk menerapkan perubahan, lalu lihat apakah IP sudah berhasil diubah. <br><br>Command :<pre><code>service networking restart<br>ip a</code></pre></li>
+                    <br>
+                    <img src="ip address server 2.png">
+                    <br><br>
+                </ol>
+            </section>
+            <section>
+                <h2>SERVER VM : DNS</h2>
+                <ol>
+                    <br>
+                    <li>Instal package DNS (bind9), tools cek domain (dnsutils), dan DHCP (isc-dhcp-server). <br><br>Command :<pre><code>apt-get install isc-dhcp-server bind9 dnsutils</code></pre></li>
+                    <br>
+                    <img src="instal.png">
+                    <h3>Penjelasan :</h3>
+                    <p>Pada direktori Bind kita berfokus pada 5 file berikut :</p>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>No.</th>
+                                <th>Nama file</th>
+                                <th>Keterangan</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>1</td>
+                                <td>db.local</td>
+                                <td>file berisi konfigurasi forward DNS yang memetakan nama domain ke IP Address</td>
+                            </tr>
+                            <tr>
+                                <td>2</td>
+                                <td>db.127</td>
+                                <td>file zona reverse DNS yang digunakan untuk memetakan alamat IP Address ke nama domain</td>
+                            </tr>
+                            <tr>
+                                <td>3</td>
+                                <td>named.conf.local</td>
+                                <td>file konfigurasi lokal untuk server DNS yang menyimpan informasi tentang zona DNS yang dikelola server</td>
+                            </tr>
+                            <tr>
+                                <td>4</td>
+                                <td>named.conf.options</td>
+                                <td>file konfigurasi yang mengatur opsi-opsi server DNS seperti pengaturan cache, logging, dan keamanan</td>
+                            </tr>
+                            <tr>
+                                <td>5</td>
+                                <td>rndc.key</td>
+                                <td>file kunci yang digunakan oleh DNS Server untuk mengotentikasi permintaan remote dan mengamankan komunikasi antar server dan alat manajemen DNS (rndc kependekan dari remote name daemon control)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <br>
+                    <li>Masuk kedalam direktori bind, dan edit file named.conf.local. <br><br>Command :<pre><code>cd /etc/bind<br>nano named.conf.local</code></pre></li>
+                    <br>
+                    <img src="named.conf.local.png">
+                    <br><br>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>No.</th>
+                                <th>Baris</th>
+                                <th>Keterangan</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>1</td>
+                                <td>include "/etc/bind/rndc.key"</td>
+                                <td>menyertakan file kunci</td>
+                            </tr>
+                            <tr>
+                                <td>2</td>
+                                <td>zone "lia90s.com" {</td>
+                                <td>menentukan nama zona domain</td>
+                            </tr>
+                            <tr>
+                                <td>3</td>
+                                <td>type master;</td>
+                                <td>menunjukkan server DNS adalah master server</td>
+                            </tr>
+                            <tr>
+                                <td>4</td>
+                                <td>file "/var/lib/bind/db.ip";</td>
+                                <td>menentukan lokasi file zona DNS</td>
+                            </tr>
+                            <tr>
+                                <td>5</td>
+                                <td>allow-update { key "rndc-key"; };</td>
+                                <td>menunjukkan bahwa izin pembaruan zona hanya diberikan dengan menggunakan kunci "rndc-key"</td>
+                            </tr>
+                            <tr>
+                                <td>6</td>
+                                <td>zone "1.1.172.in-addr.arpa" {</td>
+                                <td>menentukan nama zona reverse DNS</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <br>
+                    <li>Edit file named.conf.options. Ubah baris "dnssec-validation auto;" menjadi "dnssec-validation yes;"<br><br>Command :<pre><code>nano named.conf.options</code></pre></li>
+                    <br>
+                    <img src="dnssec-val.png">
+                    <br><br>
+                    <li>Salin file db.127 dan db.local, agar file original tersebut bisa menjadi cadangan kalau-kalau terjadi kesalahan konfigurasi.<br><br>Command :<pre><code>cp db.local db.ip<br>cp db.127 db.domain<br>ls</code></pre></li>
+                    <br>
+                    <img src="cp file ori.png">
+                    <br><br>
+                    <li>Edit file db.domain<br><br>Command :<pre><code>nano db.domain</code></pre></li>
+                    <br>
+                    <img src="db.domain-1.png">
+                    <br><br>
+                    <li>Ganti semua localhost menjadi domain yang diinginkan, misalnya saya menggunakan domain <u>lia90s.com</u></li>
+                    <br>
+                    <img src="db.domain-2.png">
+                    <h3>Penjelasan :</h3>
+                    <p>"1.0.0" pada baris terakhir, ubah menjadi <b>oktet terakhir pada IP Address</b>. Misalnya "172.1.1.<u>1</u>" maka oktet terakhir-nya adalah "1". Contoh lain misal "192.168.10.<u>254</u>", maka oktek terakhirnya adalah "254"</p>
+                    <br>
+                    <li>Edit file db.ip<br><br>Command :<pre><code>nano db.ip</code></pre></li>
+                    <br>
+                    <img src="db.ip-1.png">
+                    <br><br>
+                    <li>Ganti semua localhost menjadi domain yang diinginkan. Ubah IP 127.0.0.1 menjadi IP 172.1.1.1. Kemudian hapus baris "@ IN AAA ::1"</INp></li>
+                    <br>
+                    <img src="db.ip-2.png">
+                    <br><br>
+                    <li>Salin file db.domain dan db.ip ke direktori /var/lib/bind.<br><br>Command :<pre><code>cd /var/lib/bind<br>cp /etc/bind/db.ip .<br>cp /etc/bind/db.domain .<br>ls</code></pre></li>
+                    <br>
+                    <img src="var-lib.png">
+                    <h3>Penjelasan :</h3>
+                    <p>Jika menggunakan file db.ip dan db.domain yang ada didalam /etc/bind, maka tidak bisa update secara otomatis. Karena file zona DNS harus diperbarui secara otomatis setiap kali ada perubahan pada alamat IP Host yang terdaftar. Biasanya file lebih baik ditempatkan di direktori /var/lib/bind atau /var/cache/bind. Hal ini disebabkan keamanan, karena 2 path tersebut dianggap lebih aman</p>
+                    <li>Mengubah izin agar user dan grup Bind menjadi pemilik dan full akses terhadap file-file yang ada. Hal ini dikarenakan Bind perlu membaca dan menulis data DNS ke file-file tersebut dan DDNS bisa berfungsi dengan baik.<br><br>Command :<pre><code>chown -R bind:bind /etc/bind<br>chown -R bind:bind /var/lib/bind<br>chmod -R 775 /etc/bind<br>chmod -R 775 /var/lib/bind</code></pre></li>
+                    <br>
+                    <img src="chown.png">
+                    <br><br>
+                    <li>Edit file resolv.conf (file konfigurasi resolver). Masukkan IP Address sebagai nameserver<br><br>Command :<pre><code>nano /etc/resolv.conf</code></pre></li>
+                    <br>
+                    <img src="resolv.conf.png">
+                    <br><br>
+                    <li>Cek konfigurasi, jika tidak ada output maka konfigurasi DNS sudah berjalan baik. <br><br>Command :<pre><code>named-checkconf</code></pre></li>
+                    <br>
+                    <img src="named-check.png">
+                    <br><br>
+                </ol>
+                <h2>SERVER VM : DHCP</h2>
+                <ol>
+                    <br>
+                    <li>Salin file kunci ke dalam direktori /etc/dhcp. <br><br>Command :<pre><code>cd /etc/dhcp<br>cp /etc/bind/rndc.key .</code></pre></li>
+                    <br>
+                    <img src="rndc-dhcp.png">
+                    <br><br>
+                    <li>Edit file dhcp.conf. <br><br>Command :<pre><code>nano dhcpd.conf</code></pre></li>
+                    <br>
+                    <img src="dhcpd-1.png">
+                    <h3>Penjelasan :</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>No.</th>
+                                <th>Baris</th>
+                                <th>Keterangan</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>1</td>
+                                <td>ddns-update-style interim;</td>
+                                <td>jenis metode DDNS (interim) yang digunakan, interim berarti Bin akan melakukan update DDNS secara periodik untuk lease yang sudah disetujui. Metode "standard" juga bisa sebagai alternatif</td>
+                            </tr>
+                            <tr>
+                                <td>2</td>
+                                <td>ddns-updates on;</td>
+                                <td>mengaktifkan fitur DDNS</td>
+                            </tr>
+                            <tr>
+                                <td>3</td>
+                                <td>update-static-leases on;</td>
+                                <td>menentukan bahwa lease static juga dapat diperbarui melalui DDNS</td>
+                            </tr>
+                            <tr>
+                                <td>4</td>
+                                <td>primary 172.1.1.1;</td>
+                                <td>alamat IP server DDNS</td>
+                            </tr>
+                            <tr>
+                                <td>5</td>
+                                <td>key "rndc-key"</td>
+                                <td>nama key, kunci untuk mengotentikasi permintaan DDNS</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <br>
+                    <li>Konfigurasi bagian "A slightly" untuk IP yang akan dibagikan ke Klien. Seperti pada gambar</li>
+                    <br>
+                    <img src="dhcpd-2.png">
+                    <br><br>
+                    <li>Edit file default isc-dhcp-server. Isi nama interface di baris "INTERFACEv4" yang akan digunakan untuk melayani permintaan Klien yaitu ens33<br><br>Command :<pre><code>nano /etc/default/isc-dhcp-server</code></pre></li>
+                    <br>
+                    <img src="default dhcp.png">
+                    <br><br>
+                    <li>Cek konfigurasi, jika tidak ada output maka konfigurasi DNS sudah berjalan baik. <br><br>Command :<pre><code>named-checkconf</code></pre></li>
+                    <br>
+                    <img src="named-check.png">
+                    <br><br>
+                    <li>Restart service agar perubahan tersimpan. <br><br>Command :<pre><code>systemctl restart bind9 isc-dhcp-server.service</code></pre></li>
+                    <br>
+                    <img src="restart.png">
+                    <br><br>
+                    <li>Cek domain dengan tools dnsutils, jika sudah ada output seperti di gambar maka domain sudah berjalan. <br><br>Command :<pre><code>nslookup lia90s.com<br>nslookup 172.1.1.1</code></pre></li>
+                    <br>
+                    <img src="lookup.png">
+                    <br><br>
+            </section>
+            <section>
+                <h2>Testing</h2>
+                <ol>
+                    <br>
+                    <li>Login kedalam vm klien-1, pastikan pengaturan IP nya adalah DHCP. Disini Klien-1 sudah terhubung ke server dan mendapat IP dari DHCP Server, 172.1.1.3/24</li>
+                    <br>
+                    <img src="klien-1.png">
+                    <br><br>
+                    <li>Coba cek domain dengan tools dnsutils <br><br>Command :<pre><code>nslookup Klien-1.lia90s.com</code></pre></li>
+                    <br>
+                    <img src="klien-1-2.png">
+                    <br><br>
+                    <li>Saat mengecek status dhcp di server maka akan ada keterangan seperti berikut, dimana dhcp menambah map untuk forward dan reverse terhadap dns. <br><br>Command :<pre><code>service isc-dhcp-server status</code></pre></li>
+                    <br>
+                    <img src="status.png">
+                </ol>
+            </section>
+            <section>
+                <h2>Conclusion</h2>
+                <p>Dalam tutorial kali ini, kita sudah belajar bagaimana mengkonfigurasi DDNS pada Debian 11 menggunakan Bind9 dan Isc-dhcp-server. Dalam mengkonfigurasi DDNS ada beberapa hal penting, seperti menentukan jenis algoritma key seperti rndc.key tadi, sebenarnya masih banyak algoritma kunci yang bisa digunakan misalnya hmac-md5 (seperti yang kita gunakan pada tutorial kali ini), rsasha256, tsig, dan masih banyak lagi. Selain itu kita juga belajar bagaimana DNS dibuat dan mekanisme DDNS, juga beberapa perintah dasar tentunya. Dengan mengikuti tutorial ini, saya harap pembaca dapat memahami DDNS. Terimakasih sudah membaca!</p>
+                <br>
+                <p>Penjelasan tambahan :</p>
+                <ul>
+                    <li>format nama domain yang dibuat adalah "hostname.example.com" misalnya contoh "Klien-1.lia90s.com"</li>
+                    <li>sebanyak apapun Klien yang bergabung, mendapat IP address dari server DHCP maka sebanyak itulah DDNS akan bekerja membuatkan domain untuk setiap host yang ada</li>
+                </ul>
+            </section>
+		</div>
+	</main>
+    <footer>2023 Rizqi Amalia-Konfigurasi DDNS Debian 11</footer>
+</body>
+</html>
