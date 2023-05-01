@@ -4,6 +4,7 @@ body {
 	padding: 0;
 	background-color: #f7f7f7;
 	max-width: 1200px;
+	word-wrap: break-word;
 }
 
 header {
