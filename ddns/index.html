@@ -137,7 +137,7 @@
                             <tr>
                                 <td>6</td>
                                 <td>zone "1.1.172.in-addr.arpa" {</td>
-                                <td>menentukan nama zona reverse DNS</td>
+                                <td>adalah kebalikan dari 172.1.1.1, hanya saja oktet terakhirnya tidak dibawa. baris ini bertujuan menentukan nama zona reverse DNS</td>
                             </tr>
                         </tbody>
                     </table>
@@ -241,10 +241,6 @@
                     <li>Edit file default isc-dhcp-server. Isi nama interface di baris "INTERFACEv4" yang akan digunakan untuk melayani permintaan Klien yaitu ens33<br><br>Command :<pre><code>nano /etc/default/isc-dhcp-server</code></pre></li>
                     <br>
                     <img src="default dhcp.png">
-                    <br><br>
-                    <li>Cek konfigurasi, jika tidak ada output maka konfigurasi DNS sudah berjalan baik. <br><br>Command :<pre><code>named-checkconf</code></pre></li>
-                    <br>
-                    <img src="named-check.png">
                     <br><br>
                     <li>Restart service agar perubahan tersimpan. <br><br>Command :<pre><code>systemctl restart bind9 isc-dhcp-server.service</code></pre></li>
                     <br>
